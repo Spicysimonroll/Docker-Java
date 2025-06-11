@@ -1,14 +1,40 @@
 services:
+  database:
+    image: mysql:8.0.36
+    restart: always
+    environment:
+      MYSQL_DATABASE: my_app_db
+      MYSQL_ROOT_PASSWORD: supersecret
+      MYSQL_USER: simon
+      MYSQL_PASSWORD: secret
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysqldata:/var/lib/mysql
+
+  dbgate:
+    image: dbgate/dbgate
+    restart: always
+    ports:
+      - 3308:3000
+    volumes:
+      - dbgate-data:/root/.dbgate
+
   backend:
     build: .
     ports:
-      - "8080:8080"
+      - "8081:8080"
 
   frontend:
     build:
       context: ./FE
       dockerfile: DockerfileFE
     ports:
-      - "8081:80"
+      - "8082:80"
     depends_on:
       - backend
+
+volumes:
+  mysqldata:
+  dbgate-data:
+    driver: local
