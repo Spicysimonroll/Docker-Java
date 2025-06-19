@@ -1,9 +1,10 @@
 services:
-  database:
+  mysql:
     image: mysql:8.0.36
+    container_name: mysql-db
     restart: always
     environment:
-      MYSQL_DATABASE: my_app_db
+      MYSQL_DATABASE: my_sql_db
       MYSQL_ROOT_PASSWORD: supersecret
       MYSQL_USER: simon
       MYSQL_PASSWORD: secret
@@ -12,20 +13,81 @@ services:
     volumes:
       - mysqldata:/var/lib/mysql
 
+  postgres:
+    image: postgres
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: supersecret
+      POSTGRES_DB: my_postgres_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgresdata:/var/lib/postgresql/data
+
+  mongodb:
+    image: mongo
+    restart: always
+    container_name: mongo-db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: supersecret
+      MONGO_INITDB_DATABASE: my_mongo_db
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodbdata:/data/db
+
   dbgate:
     image: dbgate/dbgate
+    container_name: db-gate
     restart: always
     ports:
-      - 3308:3000
+      - 3001:3000
+    environment:
+      INSTALL_PLUGINS: dbgate-plugin-mysql,dbgate-plugin-mongo,dbgate-plugin-postgres
+
+      CONNECTIONS: con1,con2,con3
+
+      #mysql conn
+      LABEL_con1: "MySQL DB"
+      SERVER_con1: mysql
+      USER_con1: root
+      PASSWORD_con1: supersecret
+      PORT_con1: 3306
+      ENGINE_con1: mysql@dbgate-plugin-mysql
+
+      #postgres conn
+      LABEL_con2: "PostgresDB"
+      SERVER_con2: postgres
+      USER_con2: admin
+      PASSWORD_con2: supersecret
+      PORT_con2: 5432
+      ENGINE_con2: postgres@dbgate-plugin-postgres
+
+      #mongodb conn
+      LABEL_con3: "MongoDB"
+      SERVER_con3: mongodb
+      USER_con3: admin
+      PASSWORD_con3: supersecret
+      PORT_con3: 27017
+      ENGINE_con3: mongo@dbgate-plugin-mongo
+
     volumes:
       - dbgate-data:/root/.dbgate
+    depends_on:
+    - mysql
+    - mongodb
 
   backend:
+    container_name: be
     build: .
     ports:
       - "8081:8080"
 
   frontend:
+    container_name: fe
     build:
       context: ./FE
       dockerfile: DockerfileFE
@@ -38,3 +100,5 @@ volumes:
   mysqldata:
   dbgate-data:
     driver: local
+  mongodbdata:
+  postgresdata:
